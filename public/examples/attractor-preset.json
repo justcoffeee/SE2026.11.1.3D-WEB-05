@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "app": "3D-WEB-05",
+  "config": {
+    "mode": "attractor",
+    "backendPreference": "auto",
+    "particleCount": 20000,
+    "speed": 1.2,
+    "particleSize": 2.5,
+    "particleColor": "#6ce6ff",
+    "strength": 1.5
+  }
+}
