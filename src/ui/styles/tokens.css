@@ -19,6 +19,21 @@
   --ui-space-6: 24px;
 }
 
+.renderer-unavailable {
+  position: absolute;
+  z-index: 3;
+  inset: 50% auto auto 50%;
+  max-width: min(90%, 420px);
+  padding: 12px 16px;
+  transform: translate(-50%, -50%);
+  border: 1px solid #6a4352;
+  border-radius: 8px;
+  background: #271a28;
+  color: #ffe6e9;
+  font-size: 13px;
+  text-align: center;
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
