@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 
 const fixturePage = '/tests/e2e/fixtures/renderer-port.html';
 
-test('production without an injected renderer stays unavailable, even with a fixture query', async ({ page }) => {
-  await page.goto('/?uiState=ready-webgpu');
+test('production without an injected renderer stays unavailable despite a backend query', async ({ page }) => {
+  await page.goto('/?backend=webgpu');
   await expect(page.locator('#actual-backend')).toHaveText('Không khả dụng');
   await expect(page.locator('#runtime-phase-label')).toHaveText('UNSUPPORTED');
   await expect(page.locator('#runtime-fps')).toHaveText('—');
@@ -78,7 +78,8 @@ test('pause, resume, reset and defaults use the port; unmount and unload dispose
 
 test('initial apply failure stays disabled across polling until a successful import', async ({ page }) => {
   await page.clock.install();
-  await page.goto(`${fixturePage}?uiState=apply-error`);
+  await page.addInitScript(() => { window.initialRendererApplyFailure = true; });
+  await page.goto(fixturePage);
   await expect(page.locator('#lab-shell')).toHaveAttribute('data-runtime-phase', 'error');
   await page.clock.fastForward(2000);
   await expect(page.locator('#mode-vortex')).toBeDisabled();

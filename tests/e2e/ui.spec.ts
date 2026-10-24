@@ -43,14 +43,15 @@ test('luồng điều khiển chính hoạt động và không tràn ngang', asy
   expect(hasHorizontalOverflow).toBe(false);
 });
 
-test('fixture runtime hiển thị đúng fallback và error', async ({ page }) => {
-  await page.goto(`${fixturePage}?uiState=fallback-webgl2`);
+test('trạng thái port chuyển trực tiếp qua fallback và error', async ({ page }) => {
+  await page.goto(fixturePage);
+  await page.evaluate(() => window.uiTest.setStatus({ actual: 'webgl2' }));
   await expect(page.locator('#lab-shell')).toHaveAttribute('data-runtime-phase', 'fallback');
   await expect(page.locator('#runtime-notice')).toHaveAttribute('data-tone', 'warning');
   await expect(page.locator('#actual-backend')).toContainText('WebGL2 fallback');
   await expect(page.locator('#mode-vortex')).toBeEnabled();
 
-  await page.goto(`${fixturePage}?uiState=error`);
+  await page.evaluate(() => window.uiTest.setFailure(true));
   await expect(page.locator('#lab-shell')).toHaveAttribute('data-runtime-phase', 'error');
   await expect(page.locator('#runtime-notice')).toHaveAttribute('role', 'alert');
   await expect(page.locator('#runtime-notice-title')).toHaveText('Renderer gặp lỗi');
@@ -103,13 +104,19 @@ test('preset export tạo JSON đúng schema', async ({ page }) => {
 });
 
 test('không có vi phạm WCAG tự động mức A/AA @a11y', async ({ page }) => {
-  for (const url of ['/', '/?uiState=fallback-webgl2', '/?uiState=unsupported', '/?uiState=error']) {
-    await page.goto(`${fixturePage}${url.slice(1)}`);
+  await page.goto(fixturePage);
+  for (const phase of ['ready', 'fallback', 'unsupported', 'error']) {
+    await page.evaluate((phase) => {
+      window.uiTest.setFailure(phase === 'error');
+      window.uiTest.setStatus({ actual: phase === 'unsupported' ? 'unavailable'
+        : phase === 'fallback' ? 'webgl2' : 'webgpu' });
+    }, phase);
+    await expect(page.locator('#lab-shell')).toHaveAttribute('data-runtime-phase', phase);
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();
 
-    expect(results.violations, `Axe violations tại ${url}`).toEqual([]);
+    expect(results.violations, `Axe violations tại ${phase}`).toEqual([]);
   }
 });
 
@@ -126,16 +133,21 @@ test('tạo ảnh minh chứng desktop/mobile theo fixture @evidence', async ({ 
   const isDesktop = testInfo.project.name === 'desktop-chromium';
   const cases = isDesktop
     ? [
-        { url: '/', file: 'automated-desktop-1440x1000.png' },
-        { url: '/?uiState=fallback-webgl2', file: 'automated-fallback-1440x1000.png' },
+        { phase: 'ready', file: 'automated-desktop-1440x1000.png' },
+        { phase: 'fallback', file: 'automated-fallback-1440x1000.png' },
       ]
     : [
-        { url: '/', file: 'automated-mobile-500x844.png' },
-        { url: '/?uiState=error', file: 'automated-error-500x844.png' },
+        { phase: 'ready', file: 'automated-mobile-500x844.png' },
+        { phase: 'error', file: 'automated-error-500x844.png' },
       ];
 
   for (const evidence of cases) {
-    await page.goto(`${fixturePage}${evidence.url.slice(1)}`);
+    await page.goto(fixturePage);
+    await page.evaluate((phase) => {
+      window.uiTest.setFailure(phase === 'error');
+      window.uiTest.setStatus({ actual: phase === 'fallback' ? 'webgl2' : 'webgpu' });
+    }, evidence.phase);
+    await expect(page.locator('#lab-shell')).toHaveAttribute('data-runtime-phase', evidence.phase);
     await expect(page.locator('#lab-shell')).toBeVisible();
     await page.screenshot({
       path: path.join(screenshotDir, evidence.file),

@@ -53,7 +53,8 @@ merge. CI runs `npm run verify` on PRs and configured pushes.
 - **Verification:** UI interaction tests use an explicit
   `tests/e2e/fixtures/renderer-port.html` harness with `FakeRenderer`.
   The harness starts no GPU and its backend labels are test inputs, not runtime
-  evidence. The production entry ignores fixture query parameters.
+  evidence. Runtime state is not selected by URL parameters: tests change the
+  injected port status directly and exercise polling, failure and recovery.
 
 ## Integration still required
 
@@ -83,6 +84,7 @@ merge. CI runs `npm run verify` on PRs and configured pushes.
 - [Team ownership](docs/05-management/team-ownership.md)
 - [Benchmark result template](docs/06-benchmark/README.md)
 - [UI port handoff and verification](docs/04-testing/UI-renderer-port-2026-10-24.md)
+- [Live status handoff and verification](docs/04-testing/UI-live-status-2026-10-24.md)
 
 ## GitHub workflow
 

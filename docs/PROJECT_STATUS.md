@@ -1,5 +1,12 @@
 # PROJECT STATUS — 3D-WEB-05
 
+> **24/10/2026 — issue #14 draft, feat/14-ui-live-status:** the UI now has only
+> RendererStatus-based state projection; synthetic backend/fixture query helpers
+> are removed. Polling, failure/recovery and metric clearing are tested against
+> an explicitly injected FakeRenderer. PR #32 is merged; draft PR #33 targets
+> dev. GPU integration is not accepted: adapter #12/#15 and real browser evidence remain
+> pending. See [live status handoff](04-testing/UI-live-status-2026-10-24.md).
+
 > **24/10/2026 — TV4 issue #9/#25 branch checkpoint:** UI now consumes an
 > injected RendererPort, with explicit FakeRenderer browser tests and no
 > Canvas2D preview. Production main still has no adapter injected and shows

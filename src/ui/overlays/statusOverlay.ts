@@ -3,17 +3,14 @@ import { formatFps, formatGpuTiming } from '../state/runtimeState.ts';
 import type { UiRuntimeState } from '../state/runtimeState.ts';
 
 const phaseLabels: Record<UiRuntimeState['phase'], string> = {
-  initializing: 'INITIALIZING', ready: 'READY', fallback: 'FALLBACK ACTIVE',
+  ready: 'READY', fallback: 'FALLBACK ACTIVE',
   unsupported: 'UNSUPPORTED', error: 'RENDERER ERROR',
 };
 
 export function renderRuntimeStatus(state: UiRuntimeState): void {
   const shell = byId<HTMLElement>('lab-shell');
   shell.dataset.runtimePhase = state.phase;
-  shell.dataset.fixture = String(state.fixture);
-  byId<HTMLElement>('runtime-phase-label').textContent = state.fixture
-    ? `${phaseLabels[state.phase]} · UI FIXTURE`
-    : phaseLabels[state.phase];
+  byId<HTMLElement>('runtime-phase-label').textContent = phaseLabels[state.phase];
   byId<HTMLElement>('actual-backend').textContent = state.backendLabel;
   byId<HTMLElement>('backend-detail').textContent = state.backendDetail;
   byId<HTMLElement>('runtime-fps').textContent = formatFps(state);

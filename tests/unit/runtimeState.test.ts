@@ -1,76 +1,70 @@
 import { expect, test } from 'vitest';
-import {
-  createRuntimeState,
-  createRendererRuntimeState,
-  formatFps,
-  formatGpuTiming,
-  resolveRuntimeFixture,
-  withPreviewFps,
-} from '../../src/ui/state/runtimeState.ts';
+import { createRendererRuntimeState, formatFps, formatGpuTiming } from '../../src/ui/state/runtimeState.ts';
+import type { RendererStatus } from '../../src/core/renderer/RendererPort.ts';
 
-test('query không hợp lệ quay về Canvas2D mock', () => {
-  expect(resolveRuntimeFixture('?uiState=unknown')).toBe('canvas-mock');
-  expect(resolveRuntimeFixture('')).toBe('canvas-mock');
+const ready: RendererStatus = {
+  actual: 'webgpu', requested: 'auto', running: true, fps: 59.6,
+  gpuTimingAvailable: true, gpuTimeMs: 4.126,
+};
+
+for (const actual of ['webgpu', 'webgl2', 'unavailable'] as const) {
+  for (const requested of ['auto', 'webgpu', 'webgl2'] as const) {
+    test(`actual ${actual} stays authoritative when requested ${requested}`, () => {
+      const state = createRendererRuntimeState({ ...ready, actual, requested });
+      expect(state.actualBackend).toBe(actual);
+      expect(state.phase).toBe(actual === 'unavailable' ? 'unsupported'
+        : actual === 'webgl2' && requested !== 'webgl2' ? 'fallback' : 'ready');
+      expect(state.controlsDisabled).toBe(actual === 'unavailable');
+      if (actual === 'unavailable') {
+        expect(state.fps).toBeNull();
+        expect(state.gpuTimeMs).toBeNull();
+      }
+    });
+  }
+}
+
+test('ready measurements are formatted from current status', () => {
+  const state = createRendererRuntimeState(ready);
+  expect(formatFps(state)).toBe('60 FPS');
+  expect(formatGpuTiming(state)).toBe('4.13 ms');
 });
 
-test('port projection uses actual rather than requested and preserves unavailable timing', () => {
-  const state = createRendererRuntimeState({ requested: 'webgpu', actual: 'webgl2', running: true,
-    fps: 58, gpuTimingAvailable: false, gpuTimeMs: 7 });
-  expect(state.actualBackend).toBe('webgl2');
-  expect(state.phase).toBe('fallback');
-  expect(state.fixture).toBe(false);
-  expect(state.fps).toBe(58);
+test('unavailable timing overrides a numeric value from an inconsistent producer', () => {
+  const state = createRendererRuntimeState({ ...ready, gpuTimingAvailable: false });
   expect(state.gpuTimeMs).toBeNull();
+  expect(formatGpuTiming(state)).toBe('Không khả dụng');
 });
 
-test('unavailable renderer and invalid metrics cannot appear as measurements', () => {
-  expect(createRendererRuntimeState().controlsDisabled).toBe(true);
-  expect(createRendererRuntimeState(undefined, true).phase).toBe('error');
-  for (const invalid of [NaN, Infinity, -1]) {
-    const state = createRendererRuntimeState({ requested: 'auto', actual: 'webgpu', running: true,
-      fps: invalid, gpuTimingAvailable: true, gpuTimeMs: invalid });
+for (const invalid of [null, NaN, Infinity, -1]) {
+  test(`invalid metric ${invalid} cannot become a measurement`, () => {
+    const state = createRendererRuntimeState({ ...ready, fps: invalid, gpuTimeMs: invalid });
     expect(state.fps).toBeNull();
     expect(state.gpuTimeMs).toBeNull();
     expect(state.gpuTimingAvailable).toBe(false);
-  }
-});
-
-test('fixture nhận đúng từ query string', () => {
-  expect(resolveRuntimeFixture('?foo=1&uiState=fallback-webgl2')).toBe('fallback-webgl2');
-  expect(resolveRuntimeFixture('?uiState=error')).toBe('error');
-});
-
-test('trạng thái lỗi và unsupported khóa điều khiển', () => {
-  for (const fixture of ['initializing', 'unsupported', 'error'] as const) {
-    const state = createRuntimeState(fixture);
-    expect(state.controlsDisabled).toBe(true);
-    expect(state.fps).toBeNull();
-    expect(state.gpuTimeMs).toBeNull();
-  }
-});
-
-test('fixture backend không tạo số hiệu năng giả', () => {
-  for (const fixture of ['ready-webgpu', 'fallback-webgl2'] as const) {
-    const state = createRuntimeState(fixture);
     expect(formatFps(state)).toBe('—');
     expect(formatGpuTiming(state)).toBe('Không khả dụng');
-    expect(state.fpsDetail).toMatch(/Không tạo|Chờ/);
-  }
+  });
+}
+
+test('pause hides the last frame measurements and keeps resume enabled', () => {
+  const state = createRendererRuntimeState({ ...ready, running: false });
+  expect(state.fps).toBeNull();
+  expect(state.gpuTimeMs).toBeNull();
+  expect(state.gpuTimingAvailable).toBe(false);
+  expect(state.controlsDisabled).toBe(false);
+  expect(state.gpuTimingDetail).toContain('tạm dừng');
 });
 
-test('chỉ Canvas2D mock nhận FPS từ preview', () => {
-  const canvas = withPreviewFps(createRuntimeState('canvas-mock'), 59.6);
-  expect(formatFps(canvas)).toBe('60 FPS');
-
-  const fixture = createRuntimeState('ready-webgpu');
-  expect(withPreviewFps(fixture, 60)).toBe(fixture);
+test('a measured zero remains valid when timing is available', () => {
+  expect(formatGpuTiming(createRendererRuntimeState({ ...ready, gpuTimeMs: 0 }))).toBe('0.00 ms');
 });
 
-test('GPU timing chỉ hiển thị khi adapter xác nhận khả dụng', () => {
-  const state = {
-    ...createRuntimeState('ready-webgpu'),
-    gpuTimingAvailable: true,
-    gpuTimeMs: 4.126,
-  };
-  expect(formatGpuTiming(state)).toBe('4.13 ms');
+test('missing renderer and renderer errors stay unavailable with safe explanations', () => {
+  expect(createRendererRuntimeState().phase).toBe('unsupported');
+  const failure = createRendererRuntimeState(ready, true);
+  expect(failure.phase).toBe('error');
+  expect(failure.actualBackend).toBe('unavailable');
+  expect(failure.fps).toBeNull();
+  expect(failure.gpuTimeMs).toBeNull();
+  expect(failure.controlsDisabled).toBe(true);
 });
