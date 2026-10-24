@@ -47,6 +47,9 @@ export interface RendererPort {
    */
   init(target: RendererTarget): Promise<ActualBackend>;
 
+  /** Updates the drawing buffer and projection when the host canvas changes size. */
+  resize?(target: RendererTarget): void;
+
   /** Applies simulation parameters. Safe to call every frame while dragging. */
   applyConfig(config: Readonly<LabConfig>): void;
 

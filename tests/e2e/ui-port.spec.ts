@@ -2,13 +2,15 @@ import { expect, test } from '@playwright/test';
 
 const fixturePage = '/tests/e2e/fixtures/renderer-port.html';
 
-test('production without an injected renderer stays unavailable, even with a fixture query', async ({ page }) => {
+test('production initializes a real renderer and ignores UI fixture query parameters', async ({ page }) => {
   await page.goto('/?uiState=ready-webgpu');
-  await expect(page.locator('#actual-backend')).toHaveText('Không khả dụng');
-  await expect(page.locator('#runtime-phase-label')).toHaveText('UNSUPPORTED');
-  await expect(page.locator('#runtime-fps')).toHaveText('—');
-  await expect(page.locator('#gpu-timing')).toHaveText('Không khả dụng');
-  await expect(page.locator('#mode-vortex')).toBeDisabled();
+  await expect(page.locator('#lab-shell')).toHaveAttribute('data-fixture', 'false');
+  await expect(page.locator('#runtime-phase-label')).not.toContainText('UI FIXTURE');
+  await expect.poll(async () => page.locator('#actual-backend').textContent()).not.toBe('Đang khởi tạo');
+  const actual = await page.locator('#actual-backend').textContent();
+  expect(['WebGPU', 'Không khả dụng']).toContain(actual);
+  if (actual === 'Không khả dụng') await expect(page.locator('#mode-vortex')).toBeDisabled();
+  else await expect(page.locator('#mode-vortex')).toBeEnabled();
   await expect(page.locator('#export-preset')).toBeEnabled();
   await expect(page.locator('#import-preset')).toBeEnabled();
 });
