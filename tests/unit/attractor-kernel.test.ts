@@ -8,7 +8,12 @@ test('attractor buffers use the shared layout and reference defaults', () => {
   const system = createParticleBuffers(8);
 
   expect(system.count).toBe(8);
+  expect(system.positions).toBeDefined();
+  expect(system.velocities).toBeDefined();
+  expect(system.ages).toBeDefined();
+  expect(system.seeds).toBeDefined();
   expect(system.initKernel.name).toBe('Init Particles');
+  expect(system.initKernel.isComputeNode).toBe(true);
   expect(system.uniforms.spawnRadius.value).toBe(DEFAULT_SPAWN_RADIUS);
   expect(system.uniforms.radius.value).toBe(DEFAULT_ATTRACTOR_RADIUS);
   expect(system.uniforms.damping.value).toBe(DEFAULT_ATTRACTOR_DAMPING);
@@ -20,6 +25,8 @@ test('attractor kernel is a named compute node over the shared buffers', () => {
   const kernel = createAttractorKernel(system);
 
   expect(kernel.name).toBe('Attractor');
+  expect(kernel.isComputeNode).toBe(true);
+  expect(kernel.count).toBe(8);
 });
 
 test('invalid particle count is rejected before a GPU buffer exists', () => {
