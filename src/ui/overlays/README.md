@@ -1,5 +1,3 @@
 # Overlay — TV4
 
-statusOverlay.ts render UiRuntimeState vào backend, FPS, GPU timing và notice. FPS mặc định chỉ là **Canvas2D preview**, không phải benchmark.
-
-TV1/TV3/TV5 cần cung cấp adapter dữ liệu thật. Khi chưa có số đo, giữ null và hiển thị “Không khả dụng”; không tạo số fixture.
+Tuần 1: giao diện status/FPS preview được dựng trong `src/ui/app.ts`. FPS hiển thị là **Canvas2D preview**, không phải FPS từ WebGPU/WebGL2. Sau khi TV1 chốt contract `PerformanceSnapshot` (chủ: TV1, consumer: TV5 — `docs/architecture.md` §4.1), tách thành overlay module và không hiển thị số không được đo thực tế.

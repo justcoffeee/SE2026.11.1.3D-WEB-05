@@ -1,3 +1,5 @@
+import type { RendererStatus } from '../../core/renderer/RendererPort.ts';
+
 export type RuntimePhase = 'initializing' | 'ready' | 'fallback' | 'unsupported' | 'error';
 export type ActualBackend = 'canvas2d-mock' | 'webgpu' | 'webgl2' | 'unavailable';
 export type RuntimeFixtureKey = 'canvas-mock' | 'initializing' | 'ready-webgpu' | 'fallback-webgl2' | 'unsupported' | 'error';
@@ -109,4 +111,37 @@ export function formatFps(state: UiRuntimeState): string {
 export function formatGpuTiming(state: UiRuntimeState): string {
   if (!state.gpuTimingAvailable || state.gpuTimeMs === null) return 'Không khả dụng';
   return `${state.gpuTimeMs.toFixed(2)} ms`;
+}
+
+/** Projection of port facts. Query-string fixtures are never consulted here. */
+export function createRendererRuntimeState(status?: RendererStatus, failed = false): UiRuntimeState {
+  if (failed || !status || status.actual === 'unavailable') {
+    return {
+      phase: failed ? 'error' : 'unsupported', actualBackend: 'unavailable',
+      backendLabel: failed ? 'Lỗi renderer' : 'Không khả dụng',
+      backendDetail: status ? 'Không có backend đồ họa phù hợp' : 'Renderer chưa được kết nối',
+      fps: null, fpsDetail: 'Mô phỏng chưa chạy', gpuTimeMs: null,
+      gpuTimingAvailable: false, gpuTimingDetail: 'Không khả dụng',
+      controlsDisabled: true, fixture: false,
+      notice: {
+        tone: 'error', title: failed ? 'Renderer gặp lỗi' : 'Renderer chưa sẵn sàng',
+        message: 'Bạn vẫn có thể nhập và xuất preset. Mô phỏng cần renderer được khởi tạo từ ứng dụng.',
+      },
+    };
+  }
+  const fallback = status.actual === 'webgl2' && status.requested !== 'webgl2';
+  const gpuTimingAvailable = status.gpuTimingAvailable && status.gpuTimeMs !== null
+    && Number.isFinite(status.gpuTimeMs) && status.gpuTimeMs >= 0;
+  return {
+    phase: fallback ? 'fallback' : 'ready', actualBackend: status.actual,
+    backendLabel: status.actual === 'webgpu' ? 'WebGPU' : fallback ? 'WebGL2 fallback' : 'WebGL2',
+    backendDetail: fallback ? 'Renderer báo đang dùng WebGL2 thay cho WebGPU' : 'Backend do RendererPort báo cáo',
+    fps: status.running && status.fps !== null && Number.isFinite(status.fps) && status.fps >= 0 ? status.fps : null,
+    fpsDetail: status.running ? 'Dữ liệu từ RendererPort' : 'Mô phỏng đang tạm dừng',
+    gpuTimeMs: gpuTimingAvailable ? status.gpuTimeMs : null,
+    gpuTimingAvailable, gpuTimingDetail: gpuTimingAvailable ? 'Dữ liệu từ RendererPort' : 'Không khả dụng',
+    controlsDisabled: false, fixture: false,
+    ...(fallback ? { notice: { tone: 'warning' as const, title: 'Đã chuyển sang WebGL2',
+      message: 'Backend thực tế do renderer xác nhận; lựa chọn mới chỉ áp dụng khi khởi tạo lại.' } } : {}),
+  };
 }

@@ -4,7 +4,7 @@
 
 **Giai đoạn:** tuần 1 (12–18/10/2026)
 
-**Tình trạng:** phần UI độc lập engine đã có prototype và test; contract chung vẫn chờ TV1/TV2/TV3/TV5 review.
+**Tình trạng:** phần UI độc lập engine đã có prototype và test; contract chung còn chờ TV2/TV3/TV5 review. Nguồn sự thật về kiến trúc và contract là [`docs/architecture.md`](../architecture.md).
 
 ## 1. Nguồn yêu cầu
 
