@@ -20,8 +20,8 @@ Related documents: [`ui-requirements.md`](01-requirements/ui-requirements.md),
 | Perf sample shape (`PerformanceSnapshot`) | Implemented (type only) | [`src/core/types/measurement.ts`](../src/core/types/measurement.ts) |
 | Benchmark config identity (`configHash`) | Implemented | [`src/core/measurement/configHash.ts`](../src/core/measurement/configHash.ts) |
 | Preset domain (parse/serialize) | Implemented, client-side only | [`src/presets/preset.ts`](../src/presets/preset.ts) |
-| UI shell | Implemented (prototype) | [`src/ui/app.ts`](../src/ui/app.ts) |
-| Simulation preview | Canvas 2D mock, **not a GPU renderer** | [`src/ui/mock/particlePreview.ts`](../src/ui/mock/particlePreview.ts) |
+| UI shell | Consumes an injected RendererPort; no backend init in UI | [`src/ui/app.ts`](../src/ui/app.ts) |
+| Simulation preview | Canvas2D mock removed; composition root must inject a real renderer | `src/main.ts` (integration pending) |
 | Renderer adapter (one, backend-flagged) | Not started | `src/simulations/rendererAdapter.ts` (planned) |
 | Simulation: physics + material tree | Not started | `src/simulations/simulation.ts`, `src/simulations/shared/` (planned) |
 | Perf collector | RendererPort frame sampler implemented; warm-up and cadence are configured by caller | [`src/perf/collector.ts`](../src/perf/collector.ts) |
@@ -31,8 +31,9 @@ There is **one** renderer, not one per backend. `src/simulations/webgpu/` and
 timestamp query), never a second copy of the simulation rules.
 | Server, auth, persistence | **Out of scope for this repo** | — |
 
-The mock draws at most 600 points while the default config asks for 20,000, so
-no timing produced by it is usable for a WebGPU/WebGL2 comparison.
+Without an injected port the default build reports unavailable and keeps preset
+import/export available. FakeRenderer is used only by the explicit E2E harness;
+its labels/measurements are test inputs, never WebGPU/WebGL2 benchmark evidence.
 
 ## 2. Dependency rules
 
@@ -58,10 +59,10 @@ Rules:
 4. `src/ui/` may not import `src/simulations/*` directly — only `RendererPort`.
 5. `src/presets/` may not import `src/ui/`.
 
-Rule 4 holds today only because nothing implements `RendererPort`: the UI draws
-with a Canvas 2D mock that itself lives under `src/ui/`, so there is no
-`src/simulations/` import to forbid yet. The port has no implementation and the
-mock cannot be swapped for a GPU backend — that gap is D-01.
+Rule 4 is exercised by the UI port consumer and the fake-port interaction tests.
+The production adapter and composition-root injection are still missing (D-01).
+See [UI port handoff](04-testing/UI-renderer-port-2026-10-24.md) for lifecycle,
+default config application and the no-port compatibility path.
 
 ## 3. Backend boundary
 
@@ -184,13 +185,13 @@ browser with no dependency added. It rejects missing, non-finite or invalid
 
 | ID | Debt | Where |
 |---|---|---|
-| D-01 | UI imports the Canvas 2D mock directly; no `RendererPort` implementation is wired | `src/ui/app.ts`, `src/ui/mock/particlePreview.ts` |
+| D-01 | UI consumes RendererPort and mock is removed; real adapter/composition-root injection still pending | `src/main.ts` (issues #12/#15) |
 | D-02 | Domain module touches the DOM (`downloadPreset`) | `src/presets/preset.ts` |
 | D-03 | Unchecked cast from a DOM value into `LabConfig` | `src/ui/app.ts` |
 | D-04 | Backend label hardcoded in the UI template | `src/ui/app.ts` |
 | D-05 | `serializePreset` re-parses its own output to self-validate | `src/presets/preset.ts` |
 | D-06 | `RendererPort` depends on `src/presets` for the `LabConfig` type | `src/core/renderer/RendererPort.ts` |
-| D-07 | TV1 must inject `RendererPort` into `src/ui/app.ts`, which TV4 owns and merges — two owners on one file. The status UI stays in TV4's overlay module, not in a file TV5 edits | `src/ui/app.ts` |
+| D-07 | UI injection API is available; TV1 supplies the initialized port from main. Full live-status acceptance remains #14 | `src/main.ts`, `src/ui/overlays/statusOverlay.ts` |
 
 D-06 disappears once the config types move into `src/core/types/`; that change
 needs TV4's agreement because `src/presets/` is theirs.
@@ -209,7 +210,8 @@ Evidence on the WebGL2 path is in
 ```bash
 npm ci
 npm run typecheck     # tsc --noEmit over src/
-npm test              # node --experimental-strip-types --test tests/unit/*.test.ts
+npm test              # Vitest unit and contract tests
+npm run verify        # source/tests typecheck, unit, Chromium E2E, production build
 ```
 
 `RendererPort` itself adds no runtime code; the contract test exists so that a

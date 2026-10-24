@@ -13,7 +13,7 @@ export function renderRuntimeStatus(state: UiRuntimeState): void {
   shell.dataset.fixture = String(state.fixture);
   byId<HTMLElement>('runtime-phase-label').textContent = state.fixture
     ? `${phaseLabels[state.phase]} · UI FIXTURE`
-    : 'UI PROTOTYPE · WEEK 01';
+    : phaseLabels[state.phase];
   byId<HTMLElement>('actual-backend').textContent = state.backendLabel;
   byId<HTMLElement>('backend-detail').textContent = state.backendDetail;
   byId<HTMLElement>('runtime-fps').textContent = formatFps(state);

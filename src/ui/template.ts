@@ -30,8 +30,8 @@ export function createLabMarkup(): string {
             </section>
             <section class="scene-card" aria-label="Khu vực xem trước particle">
               <div class="grid-layer" aria-hidden="true"></div>
-              <canvas id="preview-canvas" aria-label="Bản xem trước particle bằng Canvas 2D">Trình duyệt không hỗ trợ Canvas 2D.</canvas>
-              <div class="scene-upper"><span class="pill green">● PREVIEW ACTIVE</span><span class="render-tag">CANVAS 2D DEMO · NOT GPU</span></div>
+              <canvas id="preview-canvas" aria-label="Vùng hiển thị mô phỏng particle">Renderer chưa được kết nối.</canvas>
+              <div class="scene-upper"><span class="pill green">PARTICLE LAB</span><span class="render-tag">SIMULATION VIEW</span></div>
               <div class="crosshair" aria-hidden="true">+</div>
               <div class="scene-bottom">
                 <div><span class="scene-kicker">SIMULATION MODE</span><strong id="scene-mode">ATTRACTOR FIELD</strong></div>
@@ -43,10 +43,10 @@ export function createLabMarkup(): string {
             </section>
             <div class="scene-info" aria-live="polite">
               <div class="info-card"><span>BACKEND THỰC TẾ</span><strong id="actual-backend">Đang khởi tạo</strong><small id="backend-detail">Chờ trạng thái UI.</small></div>
-              <div class="info-card"><span>FPS XEM TRƯỚC</span><strong id="runtime-fps">—</strong><small id="runtime-fps-detail">Chưa có số liệu.</small></div>
+              <div class="info-card"><span>FPS</span><strong id="runtime-fps">—</strong><small id="runtime-fps-detail">Chưa có số liệu.</small></div>
               <div class="info-card"><span>GPU TIMING</span><strong id="gpu-timing">Không khả dụng</strong><small id="gpu-timing-detail">Chờ tích hợp.</small></div>
             </div>
-            <div class="integration-hint">ⓘ Đây là bản <strong>UI pre-integration</strong>. Dùng <code>?uiState=initializing|ready-webgpu|fallback-webgl2|unsupported|error</code> để kiểm tra trạng thái. Fixture không chứng minh backend hoặc hiệu năng thật.</div>
+            <div class="integration-hint">ⓘ Trạng thái và số đo lấy từ renderer được kết nối. Khi renderer chưa sẵn sàng, bạn vẫn có thể chuẩn bị preset.</div>
           </main>
           <aside class="settings" aria-label="Bảng điều khiển particle">
             <div class="settings-head"><div><div class="eyebrow">EXPERIMENT SETTINGS</div><h2>Control panel</h2></div><span class="tool-icon" aria-hidden="true">⚙</span></div>
@@ -78,7 +78,7 @@ export function createLabMarkup(): string {
                 <div class="section-title"><span>04</span><h3>Rendering preference</h3></div>
                 <label for="backend" class="field-label">Backend được yêu cầu</label>
                 <select id="backend"><option value="auto">Auto (ưu tiên WebGPU)</option><option value="webgpu">WebGPU</option><option value="webgl2">WebGL2</option></select>
-                <p class="field-hint">Lựa chọn này chưa đổi backend thật; adapter Core sẽ xử lý khi tích hợp.</p>
+                <p class="field-hint">Lựa chọn backend có hiệu lực ở lần khởi tạo renderer tiếp theo.</p>
               </section>
               <section class="control-section preset-section">
                 <div class="section-title"><span>05</span><h3>Preset configuration</h3></div>

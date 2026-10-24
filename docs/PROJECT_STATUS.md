@@ -1,5 +1,12 @@
 # PROJECT STATUS — 3D-WEB-05
 
+> **24/10/2026 — TV4 issue #9/#25 branch checkpoint:** UI now consumes an
+> injected RendererPort, with explicit FakeRenderer browser tests and no
+> Canvas2D preview. Production main still has no adapter injected and shows
+> unavailable; this is not GPU acceptance. README reflects this branch's
+> behavior. See [handoff and verification](04-testing/UI-renderer-port-2026-10-24.md).
+> Previous checkpoints below are historical, not current branch state.
+
 > Cập nhật GitHub ngày **22/10/2026**: xem
 > [snapshot theo từng nhánh và kế hoạch PR](05-management/github-progress-2026-10-22.md)
 > và [kiểm tra TV4 hôm nay](04-testing/TV4-pr-verification-2026-10-22.md).

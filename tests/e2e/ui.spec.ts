@@ -3,6 +3,8 @@ import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+const fixturePage = '/tests/e2e/fixtures/renderer-port.html';
+
 const validPreset = {
   schemaVersion: 1,
   app: '3D-WEB-05',
@@ -18,10 +20,10 @@ const validPreset = {
 };
 
 test('luồng điều khiển chính hoạt động và không tràn ngang', async ({ page }) => {
-  await page.goto('/');
+  await page.goto(fixturePage);
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Make motion');
-  await expect(page.locator('#actual-backend')).toContainText('Canvas 2D');
+  await expect(page.locator('#actual-backend')).toHaveText('WebGPU');
 
   await page.locator('#mode-vortex').click();
   await expect(page.locator('#mode-vortex')).toHaveAttribute('aria-pressed', 'true');
@@ -42,16 +44,16 @@ test('luồng điều khiển chính hoạt động và không tràn ngang', asy
 });
 
 test('fixture runtime hiển thị đúng fallback và error', async ({ page }) => {
-  await page.goto('/?uiState=fallback-webgl2');
+  await page.goto(`${fixturePage}?uiState=fallback-webgl2`);
   await expect(page.locator('#lab-shell')).toHaveAttribute('data-runtime-phase', 'fallback');
   await expect(page.locator('#runtime-notice')).toHaveAttribute('data-tone', 'warning');
   await expect(page.locator('#actual-backend')).toContainText('WebGL2 fallback');
   await expect(page.locator('#mode-vortex')).toBeEnabled();
 
-  await page.goto('/?uiState=error');
+  await page.goto(`${fixturePage}?uiState=error`);
   await expect(page.locator('#lab-shell')).toHaveAttribute('data-runtime-phase', 'error');
   await expect(page.locator('#runtime-notice')).toHaveAttribute('role', 'alert');
-  await expect(page.locator('#runtime-notice-title')).toHaveText('Không thể khởi tạo renderer');
+  await expect(page.locator('#runtime-notice-title')).toHaveText('Renderer gặp lỗi');
   await expect(page.locator('#runtime-notice-message')).not.toContainText(/Error:|at \w+ \(|\.tsx?:\d+/);
   await expect(page.locator('[data-runtime-control]:not(:disabled)')).toHaveCount(0);
   await expect(page.locator('#export-preset')).toBeEnabled();
@@ -59,7 +61,7 @@ test('fixture runtime hiển thị đúng fallback và error', async ({ page }) 
 });
 
 test('preset hợp lệ được import, preset lỗi không làm đổi state', async ({ page }) => {
-  await page.goto('/');
+  await page.goto(fixturePage);
 
   await page.locator('#preset-file').setInputFiles({
     name: 'valid-preset.json',
@@ -84,7 +86,7 @@ test('preset hợp lệ được import, preset lỗi không làm đổi state',
 });
 
 test('preset export tạo JSON đúng schema', async ({ page }) => {
-  await page.goto('/');
+  await page.goto(fixturePage);
 
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#export-preset').click();
@@ -102,7 +104,7 @@ test('preset export tạo JSON đúng schema', async ({ page }) => {
 
 test('không có vi phạm WCAG tự động mức A/AA @a11y', async ({ page }) => {
   for (const url of ['/', '/?uiState=fallback-webgl2', '/?uiState=unsupported', '/?uiState=error']) {
-    await page.goto(url);
+    await page.goto(`${fixturePage}${url.slice(1)}`);
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();
@@ -133,7 +135,7 @@ test('tạo ảnh minh chứng desktop/mobile theo fixture @evidence', async ({ 
       ];
 
   for (const evidence of cases) {
-    await page.goto(evidence.url);
+    await page.goto(`${fixturePage}${evidence.url.slice(1)}`);
     await expect(page.locator('#lab-shell')).toBeVisible();
     await page.screenshot({
       path: path.join(screenshotDir, evidence.file),

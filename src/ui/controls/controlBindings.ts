@@ -12,9 +12,9 @@ const formatNumber = (value: number): string =>
 
 interface ControlCallbacks {
   getConfig: () => LabConfig;
-  updateConfig: (next: LabConfig, resetPreview?: boolean) => void;
-  resetPreview: () => void;
-  togglePreview: () => boolean;
+  updateConfig: (next: LabConfig, resetSimulation?: boolean) => void;
+  resetSimulation: () => void;
+  toggleSimulation: () => void;
   notify: (message: string, tone?: ToastTone) => void;
 }
 
@@ -48,13 +48,18 @@ export function renderLabControls(config: LabConfig): void {
 
 export function bindLabControls(callbacks: ControlCallbacks): () => void {
   const disposers: Array<() => void> = [];
+  let disposed = false;
   const listen = (
     element: HTMLElement,
     event: string,
     handler: EventListener,
   ): void => {
-    element.addEventListener(event, handler);
-    disposers.push(() => element.removeEventListener(event, handler));
+    const guarded: EventListener = (event) => {
+      try { handler(event); }
+      catch { callbacks.notify('Không thể cập nhật renderer. Vui lòng thử lại.', 'error'); }
+    };
+    element.addEventListener(event, guarded);
+    disposers.push(() => element.removeEventListener(event, guarded));
   };
 
   const numericFields = {
@@ -86,7 +91,7 @@ export function bindLabControls(callbacks: ControlCallbacks): () => void {
       ...callbacks.getConfig(),
       backendPreference: (event.target as HTMLSelectElement).value as LabConfig['backendPreference'],
     });
-    callbacks.notify('Đã lưu lựa chọn backend trong UI; engine thật chưa được kết nối.', 'info');
+    callbacks.notify('Lựa chọn backend sẽ có hiệu lực ở lần khởi tạo renderer tiếp theo.', 'info');
   });
 
   (['attractor', 'vortex'] as const).forEach((mode) => {
@@ -96,15 +101,12 @@ export function bindLabControls(callbacks: ControlCallbacks): () => void {
   });
 
   listen(byId<HTMLButtonElement>('toggle-preview'), 'click', () => {
-    const running = callbacks.togglePreview();
-    const button = byId<HTMLButtonElement>('toggle-preview');
-    button.textContent = running ? 'Ⅱ' : '▶';
-    button.setAttribute('aria-label', running ? 'Tạm dừng xem trước' : 'Tiếp tục xem trước');
+    callbacks.toggleSimulation();
   });
 
   listen(byId<HTMLButtonElement>('reset-preview'), 'click', () => {
-    callbacks.resetPreview();
-    callbacks.notify('Đã khởi tạo lại bản xem trước.');
+    callbacks.resetSimulation();
+    callbacks.notify('Đã khởi tạo lại mô phỏng.');
   });
 
   listen(byId<HTMLButtonElement>('export-preset'), 'click', () => {
@@ -126,10 +128,12 @@ export function bindLabControls(callbacks: ControlCallbacks): () => void {
     if (!file) return;
     try {
       if (file.size > 1_000_000) throw new Error('Tệp preset vượt quá giới hạn 1 MB.');
-      callbacks.updateConfig(parsePreset(await file.text()), true);
+      const next = parsePreset(await file.text());
+      if (disposed) return;
+      callbacks.updateConfig(next, true);
       callbacks.notify('Đã nhập preset hợp lệ.');
     } catch (error) {
-      callbacks.notify(error instanceof Error ? error.message : 'Không thể đọc preset.', 'error');
+      if (!disposed) callbacks.notify(error instanceof Error ? error.message : 'Không thể đọc preset.', 'error');
     } finally {
       input.value = '';
     }
@@ -140,5 +144,9 @@ export function bindLabControls(callbacks: ControlCallbacks): () => void {
     callbacks.notify('Đã khôi phục cấu hình mặc định.');
   });
 
-  return () => disposers.forEach((dispose) => dispose());
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    disposers.forEach((dispose) => dispose());
+  };
 }
